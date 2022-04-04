@@ -198,7 +198,7 @@ if __name__ == '__main__':
         ind = 0
         for pop in polulation.polulation:
             game = Game(0, ind, generations)
-            game.brain = CreateNetwork(2, [6,1], pop.value)
+            game.brain = CreateNetwork(2, [6,1], pop.value) #, json=True,outputs_types=['discrete'])
             pop.fitness = game.start()
             print('Ind: %d - Fitness: %d - Generation: %d' % (ind, pop.fitness, generations))
             ind = ind + 1

@@ -1,0 +1,41 @@
+
+
+GET /api/v1/population/:population
+{
+    "id": "0000-0000-0000-0000-0000",
+    "generation": 2,
+    "ANNs": [
+        {
+            "ann_id": "0000-aaaa-0000-0001",
+            "topology": {
+                "inputs": 2,
+                "layers": [
+                    [[0.1,0.2],[0.3,0.4]],
+                    [[0.4,-0.2],[0,0]]
+                ],
+                "function": "sigmoid",
+                "outputs_types": ["discrete", "discrete"],
+            }
+        }
+    ]
+}
+
+POST /api/v1/population/:population/fitness
+{
+    "id": "0000-0000-0000-0000-0000",
+    "fitness": [
+        {
+            "ann_id": "0000-aaaa-0000-0001",
+            "fitness": 12.3
+        }
+    ],
+    "generation": 2,
+}
+
+POST /api/v1/population/:population/evolve
+{
+    "id": "0000-0000-0000-0000-0000",
+    "pmu": 0.3,
+    "pcx": 0.9,
+    "elitist": true
+}

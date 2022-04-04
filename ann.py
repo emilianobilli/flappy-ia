@@ -75,7 +75,7 @@ def GetWeightLen(inputs:int, topology:list):
         total = total + (inputs * t)
     return total
 
-def CreateNetwork(inputs:int, topology:list, w:list, func=sigmoid):
+def CreateNetwork(inputs:int, topology:list, w:list, func=sigmoid, json:bool=False, outputs_types:list=[]):
 
     def split(elements, count):
         return [tuple(elements[i::count]) for i in range(count)]
@@ -86,18 +86,28 @@ def CreateNetwork(inputs:int, topology:list, w:list, func=sigmoid):
         raise ValueError('Invalid Topology')
 
     total = inputs * topology[0]
-    layer = [split(w[:total], topology[0])]
+    layers = [split(w[:total], topology[0])]
     w = w[total:]
     inputs = topology[0]
     for t in topology[1:]:
         total = inputs * t
         inputs = t
-        layer.append(split(w[:total],inputs))
+        layers.append(split(w[:total],inputs))
         w = w[:total]
 
-    return Network(input_parameter, layer, func)
+    if json:
+        ann = {
+            "inputs": input_parameter,
+            "outputs_types": outputs_types,
+            "layers": layers,
+            "function": func.__name__
+        }
+        return ann
+
+    return Network(input_parameter, layers, func)
 
 #print(GetWeightLen(1,[3,2,1]))
 
-#c = CreateNetwork(2,[2],[0.2,0.1,-0.2,0.99])
-#print(c(12,2))
+#c = CreateNetwork(2,[2],[0.2,0.1,-0.2,0.99],json=True, outputs_types=['discrete', 'discrete'])
+#import json
+#print(json.dumps(c))
