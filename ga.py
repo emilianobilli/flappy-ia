@@ -25,11 +25,11 @@ class Chromosome(object):
         return True
 
 
-    def mutate(self):
+    def mutate(self, mu_min=-2, mu_max=2):
         # Select who gen mutate 
         i = random.randint(0, len(self.value)-1)
         # Select operations 0 add, 1 sub
-        self.value[i] = self.value[i] + random.uniform(-2,2)
+        self.value[i] = self.value[i] + random.uniform(mu_min,mu_max)
 
 
     def cross_simple(self, other):
@@ -48,28 +48,26 @@ class Chromosome(object):
         return Chromosome(v1), Chromosome(v2)
 
 
-    def cross_arithmetic_one_point(self, other):
+    def cross_arithmetic(self, other):
         if len(other.value) != len(self.value):
             raise ValueError('Impossible Cross diferent sizes')
         
-        p  = random.randint(0,len(self.value))
-        c1 = []
-        c2 = []
-
+        v1 = []
+        v2 = []
+        
         for i in range(0,len(self.value)):
-            if i < p:
-                c1.append(self.value[i])
-                c2.append(other.value[i])
+            if random.uniform(0,1) < 0.5:
+                v1.append(self.value[i])
+                v2.append(other.value[i])
             else:
                 v = (self.value[i] + other.value[i]) / 2
-                c1.append(v)
-                c2.append(v)
+                v1.append(v)
+                v2.append(v)
         
         return Chromosome(c1), Chromosome(c2)
 
 class AG(object):
-    elitist = True
-
+    
     @classmethod
     def Random(cls, polulation_len, gen_len):
         return cls([Chromosome.Random(gen_len) for i in range(0,polulation_len)],None)
@@ -80,6 +78,9 @@ class AG(object):
 
         self.p_cx = 0.9
         self.p_mu = 0.3
+        self.mu_min = -2
+        self.mu_max = 2
+        self.elitist = True
 
         self.polulation = []
         if fitness_list is not None and len(chromosome_list) != len(fitness_list):
@@ -142,13 +143,14 @@ class AG(object):
             wins = self.tournament(k, fitness_max)
             c1, c2 = wins[0], wins[1]
             # Return two new Chromosomes
-            c1, c2 = c1.cross_simple(c2)
+            if random.uniform(0,1) < self.p_cx:
+                c1, c2 = c1.cross_simple(c2)
 
             if random.uniform(0,1) < self.p_mu:
-                c1.mutate()
+                c1.mutate(self.mu_min,self.mu_max)
 
             if random.uniform(0,1) < self.p_mu:
-                c2.mutate()
+                c2.mutate(self.mu_min,self.mu_max)
 
             if not self.chromosome_in_list(c1,next_generation):
                 next_generation.append(c1)
@@ -162,24 +164,25 @@ class AG(object):
         next_generation = []
         polulation_len = len(self.polulation)
 
+        if self.elitist:
+            next_generation.append(self.get_winner(fitness_max))
+
         while len(next_generation) < polulation_len:
             wins = self.tournament(k,fitness_max)
-            c1 = wins[0]
-            c2 = wins[1]
+            c1, c2 = wins[0], wins[1]
 
-            if c1 != c2:
-                if random.uniform(0,1) < self.p_cx:
-                    c1, c2 = c1.cross_arithmetic_one_point(c2)
+            if random.uniform(0,1) < self.p_cx:
+                c1, c2 = c1.cross_arithmetic(c2)
             
             if random.uniform(0,1) < self.p_mu:
-                c1.mutate()
+                c1.mutate(self.mu_min,self.mu_max)
             if random.uniform(0,1) < self.p_mu:
-                c2.mutate()
+                c2.mutate(self.mu_min,self.mu_max)
 
-            if c1 not in next_generation:
+            if not self.chromosome_in_list(c1,next_generation):
                 next_generation.append(c1)
 
-            if c2 not in next_generation and len(next_generation) < polulation_len:
+            if not self.chromosome_in_list(c2,next_generation) and len(next_generation) < polulation_len:
                 next_generation.append(c2)
 
         self.polulation = next_generation
@@ -206,3 +209,4 @@ if __name__ == '__main__':
         polulation.next_generation_cx_simple()
         generations = generations + 1
         
+

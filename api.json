@@ -14,7 +14,7 @@ GET /api/v1/population/:population
                     [[0.4,-0.2],[0,0]]
                 ],
                 "function": "sigmoid",
-                "outputs_types": ["discrete", "discrete"],
+                "outputs_types": ["discrete", "continuos"],
             }
         }
     ]
