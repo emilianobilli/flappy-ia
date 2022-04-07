@@ -7,9 +7,9 @@ class Chromosome(object):
     def Random(cls, size, i_min=-1, i_max=1):
         return cls([random.uniform(i_min, i_max) for i in range(0,size)])
     
-    def __init__(self, value: list):
+    def __init__(self, value: list, fitness=None):
         self.value = value
-        self.fitness = None
+        self.fitness = fitness
 
     def __repr__(self):
         return str(self.value)
