@@ -69,8 +69,8 @@ class Chromosome(object):
 class AG(object):
     
     @classmethod
-    def Random(cls, polulation_len, gen_len):
-        return cls([Chromosome.Random(gen_len) for i in range(0,polulation_len)],None)
+    def Random(cls, population_len, gen_len):
+        return cls([Chromosome.Random(gen_len) for i in range(0,population_len)],None)
 
     def __init__(self, chromosome_list=None, fitness_list=None):
         if chromosome_list is None:
@@ -82,7 +82,7 @@ class AG(object):
         self.mu_max = 2
         self.elitist = True
 
-        self.polulation = []
+        self.population = []
         if fitness_list is not None and len(chromosome_list) != len(fitness_list):
             raise ValueError('Impossible to init the AG')
     
@@ -92,17 +92,17 @@ class AG(object):
                 c.fitness = fitness_list[i]
             else:
                 c.fitness = None
-            self.polulation.append(c)
+            self.population.append(c)
 
 
     def get_winner(self, fitness_max=True):
-        if len(self.polulation) == 0:
+        if len(self.population) == 0:
             return None
         
-        value = self.polulation[0].fitness
-        win   = self.polulation[0]
+        value = self.population[0].fitness
+        win   = self.population[0]
 
-        for pop in self.polulation:
+        for pop in self.population:
             if fitness_max:
                 if pop.fitness > value:
                     value = pop.fitness
@@ -118,7 +118,7 @@ class AG(object):
         def key(v):
             return v.fitness
 
-        n = random.sample(self.polulation, k)
+        n = random.sample(self.population, k)
         n.sort(reverse=fitness_max, key=key)
 
         return n
@@ -133,13 +133,13 @@ class AG(object):
 
     def next_generation_cx_simple(self, k=3, fitness_max=True):
         next_generation = []
-        polulation_len = len(self.polulation)
+        population_len = len(self.population)
 
 
         if self.elitist:
             next_generation.append(self.get_winner(fitness_max))
 
-        while len(next_generation) < polulation_len:
+        while len(next_generation) < population_len:
             wins = self.tournament(k, fitness_max)
             c1, c2 = wins[0], wins[1]
             # Return two new Chromosomes
@@ -155,19 +155,19 @@ class AG(object):
             if not self.chromosome_in_list(c1,next_generation):
                 next_generation.append(c1)
 
-            if not self.chromosome_in_list(c2,next_generation) and len(next_generation) < polulation_len:
+            if not self.chromosome_in_list(c2,next_generation) and len(next_generation) < population_len:
                 next_generation.append(c2)
 
-        self.polulation = next_generation
+        self.population = next_generation
 
     def next_generation_cx_one_point(self, k=3, fitness_max=True):
         next_generation = []
-        polulation_len = len(self.polulation)
+        population_len = len(self.population)
 
         if self.elitist:
             next_generation.append(self.get_winner(fitness_max))
 
-        while len(next_generation) < polulation_len:
+        while len(next_generation) < population_len:
             wins = self.tournament(k,fitness_max)
             c1, c2 = wins[0], wins[1]
 
@@ -182,10 +182,10 @@ class AG(object):
             if not self.chromosome_in_list(c1,next_generation):
                 next_generation.append(c1)
 
-            if not self.chromosome_in_list(c2,next_generation) and len(next_generation) < polulation_len:
+            if not self.chromosome_in_list(c2,next_generation) and len(next_generation) < population_len:
                 next_generation.append(c2)
 
-        self.polulation = next_generation
+        self.population = next_generation
 
 
 if __name__ == '__main__':
@@ -194,19 +194,19 @@ if __name__ == '__main__':
     from ann import GetWeightLen
     from flappy import Game
 
-    polulation = AG.Random(10,GetWeightLen(2,[6,1]))
+    population = AG.Random(10,GetWeightLen(2,[6,1]))
 
     generations = 0
     while generations < 20:
         ind = 0
-        for pop in polulation.polulation:
+        for pop in population.population:
             game = Game(0, ind, generations)
             game.brain = CreateNetwork(2, [6,1], pop.value) #, json=True,outputs_types=['discrete'])
             pop.fitness = game.start()
             print('Ind: %d - Fitness: %d - Generation: %d' % (ind, pop.fitness, generations))
             ind = ind + 1
 
-        polulation.next_generation_cx_simple()
+        population.next_generation_cx_simple()
         generations = generations + 1
         
 
