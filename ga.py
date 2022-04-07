@@ -90,8 +90,7 @@ class AG(object):
             c = chromosome_list[i]
             if fitness_list is not None:
                 c.fitness = fitness_list[i]
-            else:
-                c.fitness = None
+
             self.population.append(c)
 
 
