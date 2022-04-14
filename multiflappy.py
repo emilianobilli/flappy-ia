@@ -11,7 +11,7 @@ class Pipes(object):
     # Class Var
     width = 20
     start_position = 600
-    gap = 150
+    gap = 170
     height_min_range = 210
     speed = -15 #10
 
@@ -21,6 +21,7 @@ class Pipes(object):
         self.position = Pipes.start_position
         self.replaced = False
         self.scored = False
+        self.distance = ()
 
     # Moves the pipes along the ground, checks if they're off the screen
     def move(self, movement):
@@ -39,9 +40,16 @@ class Bird(object):
     radius = 0
     ground_level = None
 
-    def __init__(self, position, bird_color):
+    def __init__(self, position, bird_color, bid, brain):
         self.bird_color = bird_color
         self.position   = position
+        self.id = bid
+        self.brain = brain
+        self.score = 0
+        self.distance = ()
+        self.die = False
+        self.speed = 0
+        self.gravity = 1
         
 
     def draw(self, surface):
@@ -50,14 +58,14 @@ class Bird(object):
         pygame.draw.circle(surface, self.bird_color, position, self.radius)
 
 
-    def move(self, movement, ground_level):
+    def move(self):
         x, y = self.position
-        mx, my = movement
+        mx, my = (0,self.speed)
 
-        if( (y + my + self.radius) < ground_level ):
+        if( (y + my + self.radius) < self.ground_level ):
             self.position = (x + mx, y + my)
             return True #Return if we successfuly moved
-        self.position = (x, ground_level - self.radius)
+        self.position = (x, self.ground_level - self.radius)
         return False
 
     def collision(self, pipe):
@@ -69,6 +77,25 @@ class Bird(object):
             return True
         return False
 
+    def calculate_distance(self, pipe):
+        if not self.die:
+            distance_x = pipe.position - self.position[0] #+ self.bird.radius
+            distance_y = (pipe.height - pipe.gap / 2) - self.position[1]
+            self.distance = (distance_x,distance_y)
+            print(self.id, self.distance)
+
+    def compute(self):
+        result = self.brain(self.distance)[0]
+        print(self.id, result)
+        if result == 1:
+            self.speed = -10
+
+        self.speed = self.speed + self.gravity
+
+        if (self.move() == False):
+            self.die = True
+        
+
 class Game(object):
     bird_color = None
     ground_color = None
@@ -79,16 +106,17 @@ class Game(object):
     font_object = None
     brain = None
 
-    def __init__(self, high_score, ind=0, generation=0):
+    def __init__(self, anns):
         self.window_object = pygame.display.set_mode( ( 640, 480) )
         self.score = 0
         self.pipes = [Pipes(self.ground_level)]
-        self.bird  = Bird((self.window_object.get_width() / 4 , self.window_object.get_height() / 2), self.bird_color)
-        self.gravity = 1
-        self.speed = 0
-        self.high_score = high_score
-        self.ind = ind
-        self.generation = generation
+        self.bird  = [] 
+        for ann in anns:
+            self.bird.append(Bird((self.window_object.get_width() / 4 , self.window_object.get_height() / 2), self.bird_color, ann.ann_id, ann.brain))
+        
+    #    self.gravity = 1
+    #    self.speed = 0
+        
 
     def __quit(self):
         pygame.quit()
@@ -108,8 +136,11 @@ class Game(object):
 
     def start(self):
         
-        distance_x = self.pipes[0].position - self.bird.position[0] + self.bird.radius
-        distance_y = (self.pipes[0].height - self.pipes[0].gap / 2) - self.bird.position[1]
+        distance_x = self.pipes[0].position - self.bird[0].position[0] + self.bird[0].radius
+        distance_y = (self.pipes[0].height - self.pipes[0].gap / 2) - self.bird[0].position[1]
+
+        for bird in self.bird:
+            bird.distance = (distance_x,distance_y)
 
         while True:
 
@@ -123,20 +154,8 @@ class Game(object):
                     if event.key == K_ESCAPE:
                         self.__pause_game()
 
-                    if self.brain is None:
-                        self.speed = -10
-                    
-
-            if self.brain:
-                result = self.brain((distance_x,distance_y))[0]
-                print(result)
-                if result == 1:
-                    self.speed = -10
-
-            self.speed = self.speed + self.gravity
-
-            if (self.bird.move((0,self.speed), self.ground_level) == False):
-                return self.score
+            for bird in self.bird:
+                bird.compute()
 
             n = False
             for pipe in self.pipes:
@@ -144,34 +163,55 @@ class Game(object):
                     self.pipes[len(self.pipes):] = [Pipes(self.ground_level)]
                     pipe.replaced = True
                 pipe.draw(self.window_object, self.ground_color, self.ground_level)
-                if (self.bird.collision(pipe)):
-                    self.window_object.fill(self.collide_color)
-                    return self.score
-                if ( not pipe.scored and pipe.position + pipe.width < self.bird.position[0] + self.bird.radius ):
-                    self.score = self.score + 1
-                    pipe.scored = True
+
+                for bird in self.bird:
+                    if (not bird.die and bird.collision(pipe)):
+                        self.window_object.fill(self.collide_color)
+                        bird.die = True
+
+                if not pipe.scored: 
+                    need_score = False
+                    for bird in self.bird:
+                        if bird.die == False and pipe.position + pipe.width < bird.position[0] + bird.radius:
+                            bird.score = bird.score + 1
+                            need_score = True
+                
+                    if need_score:
+                        pipe.scored = True
     
                 if( not pipe.move(pipe.speed) ):
                     del pipe
                 else:
                     if not pipe.scored and not n:
                         n = True
-                        distance_x = pipe.position - self.bird.position[0] #+ self.bird.radius
-                        distance_y = (pipe.height - pipe.gap / 2) - self.bird.position[1]
+                        for bird in self.bird:
+                            print('Recalculando')
+                            bird.calculate_distance(pipe)
 
             # Draw stuff
-            if self.brain:
-                score_surface = self.font_object.render( 'Score: %d High: %d - Dx: %d Dy: %d - Ind: %d Gen: %d' % (self.score, self.high_score, distance_x, distance_y,self.ind, self.generation), False, self.font_color)
-            else:
-                score_surface = self.font_object.render( 'Score: %d High: %d - Dx: %d Dy: %d' % (self.score, self.high_score, distance_x, distance_y), False, self.font_color)
+            #if self.brain:
+            #    score_surface = self.font_object.render( 'Score: %d High: %d - Dx: %d Dy: %d - Ind: %d Gen: %d' % (self.score, self.high_score, distance_x, distance_y,self.ind, self.generation), False, self.font_color)
+            #else:
+            #    score_surface = self.font_object.render( 'Score: %d High: %d - Dx: %d Dy: %d' % (self.score, self.high_score, distance_x, distance_y), False, self.font_color)
 
-            score_rect    = score_surface.get_rect()
-            score_rect.topleft = (self.window_object.get_height() / 2 , 10)
-            self.window_object.blit(score_surface, score_rect)
+            #score_rect    = score_surface.get_rect()
+            #score_rect.topleft = (self.window_object.get_height() / 2 , 10)
+            #self.window_object.blit(score_surface, score_rect)
             pygame.draw.rect(self.window_object, self.ground_color, (0, self.ground_level, self.window_object.get_width(), self.window_object.get_height()) )
 
-            self.bird.draw(self.window_object)
+            die_all = True
+
+            for bird in self.bird:
+                if not bird.die:
+                    die_all = False
+                    bird.draw(self.window_object)
         
+            if die_all:
+                ret = []
+                for bird in self.bird:
+                    ret.append({'ann_id': bird.id, 'fitness': bird.score})
+                return ret
+                
             pygame.display.update()
             self.fps_timer.tick(self.max_fps)
 
@@ -190,14 +230,13 @@ Game.font_object = pygame.font.Font('/System/Library/Fonts/Supplemental/Arial.tt
 #Pipes.ground_level = Game.ground_level
 #Pipes.ground_color = Game.ground_color
 Pipes.width = 30
-Pipes.gap   = 150
+Pipes.gap   = 170
 
 # Bird Configuration
 Bird.radius = 10
 Bird.ground_level = Game.ground_level
 
 if __name__ == '__main__':
-    high_score = 0
     while True:
         mg = Game(high_score)
         score = mg.start()

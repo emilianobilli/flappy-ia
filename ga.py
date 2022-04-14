@@ -64,7 +64,7 @@ class Chromosome(object):
                 v1.append(v)
                 v2.append(v)
         
-        return Chromosome(c1), Chromosome(c2)
+        return Chromosome(v1), Chromosome(v2)
 
 class AG(object):
     
@@ -200,7 +200,7 @@ if __name__ == '__main__':
         ind = 0
         for pop in population.population:
             game = Game(0, ind, generations)
-            game.brain = CreateNetwork(2, [6,1], pop.value) #, json=True,outputs_types=['discrete'])
+            game.brain = CreateNetwork(2, [6,1], pop.value, ['discrete']) #, json=True,outputs_types=['discrete'])
             pop.fitness = game.start()
             print('Ind: %d - Fitness: %d - Generation: %d' % (ind, pop.fitness, generations))
             ind = ind + 1

@@ -49,14 +49,15 @@ class ANLayer(object):
 
         return tuple([ret])
 
-a = ANLayer([(2,),(3,)])
+#a = ANLayer([(2,),(3,)])
 
 class Network(object):
-    def __init__(self, inputs:int, layers:list, func=sigmoid):
+    def __init__(self, inputs:int, layers:list, outputs_types=[], func=sigmoid):
         self.layers = []
         self.inputs = inputs
         for layer in layers:
             self.layers.append(ANLayer(layer))
+        self.outputs_types = outputs_types
     
     def __call__(self, args:tuple):
         if self.inputs != len(args):
@@ -66,7 +67,18 @@ class Network(object):
         for l in self.layers:
             inputs = l(inputs)
 
-        return inputs
+        outputs, = inputs
+        #print(outputs, self.outputs_types)
+        if self.outputs_types and len(self.outputs_types) == len(outputs):
+            for i in range(0, len(outputs)):
+                #print(self.outputs_types[i])
+                if self.outputs_types[i] == 'discrete':
+                    if outputs[i] < 0.5:
+                        outputs[i] = 0
+                    else:
+                        outputs[i] = 1
+       
+        return outputs
 
 def GetWeightLen(inputs:int, topology:list):
     total = inputs * topology[0]
